@@ -19,6 +19,7 @@ const app = express();
 const whitelist = [
   "https://inven-tree-frontend.vercel.app",
   "http://localhost:3000",
+  "http://localhost:3001",
 ];
 
 const corsOptions = {
