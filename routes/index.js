@@ -1,111 +1,80 @@
 import express from "express";
-import "@shopify/shopify-api/adapters/node";
-import { shopifyApi, LATEST_API_VERSION } from "@shopify/shopify-api";
 
 const router = express.Router();
 
-const shopify = shopifyApi({
-  apiKey: process.env.API_KEY || "fake-key",
-  apiSecretKey: process.env.API_SECRET || "fake-secret",
-  scopes: process.env.SCOPES || [],
-  hostName: "localhost",
-  apiVersion: LATEST_API_VERSION,
-});
-
 /* GET home page. */
 router.get("/", function (req, res, next) {
-  res.render("index", { title: "Express" });
+  res.render("index", { title: "InvenTree API" });
 });
 
-/* Get products from Shopify */
-router.get("/products", async (req, res) => {
+/* GET all products */
+router.get("/products", async function (req, res, next) {
   try {
-    const session = {
-      shop: process.env.SHOP,
-      accessToken: process.env.ADMIN_API_ACCESS_TOKEN,
-    };
-
-    const client = new shopify.clients.Rest({ session });
-    const response = await client.get({ path: "products" });
-
-    res.json(response.body.products);
-  } catch (err) {
-    console.error("Erreur Shopify :", err);
-    res.status(500).send("Erreur API Shopify");
+    const response = await fetch("https://dummyjson.com/products?limit=0");
+    const data = await response.json();
+    res.json(data.products);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch products" });
   }
 });
 
-/* Get stock level for a specific product */
-router.get("/stock/:inventoryItemId", async (req, res) => {
+/* GET Search products */
+router.get("/products/:search", async function (req, res, next) {
+  const { search } = req.params;
   try {
-    const session = {
-      shop: process.env.SHOP,
-      accessToken: process.env.ADMIN_API_ACCESS_TOKEN,
-    };
+    const response = await fetch(
+      `https://dummyjson.com/products/search?q=${search}`
+    );
+    const data = await response.json();
+    res.json(data.products);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+});
 
-    const client = new shopify.clients.Rest({ session });
+/* Update product */
+router.put("/products/:id", async function (req, res, next) {
+  const { id } = req.params;
+  const updatedProduct = req.body;
 
-    /* fetch inventory levels for a specific inventory item */
-    const inventoryItemId = req.params.inventoryItemId;
-    const inventory = await client.get({
-      path: "inventory_levels",
-      query: {
-        inventory_item_ids: inventoryItemId,
+  try {
+    const response = await fetch(`https://dummyjson.com/products/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(updatedProduct),
     });
 
-    res.json(inventory);
-    console.log(inventory.body.inventory_levels[0].available);
-  } catch (error) {
-    console.error("Erreur récupération stock :", error);
-    res.status(500).send("Erreur récupération stock");
-  }
-});
-
-/* Update stock level for a specific inventory item */
-router.put("/stock/:inventoryItemId", async (req, res) => {
-  try {
-    const session = {
-      shop: process.env.SHOP,
-      accessToken: process.env.ADMIN_API_ACCESS_TOKEN,
-    };
-
-    const client = new shopify.clients.Rest({ session });
-
-    const inventoryItemId = req.params.inventoryItemId;
-    const newQuantity = req.body.quantity;
-
-    if (!newQuantity && newQuantity !== 0) {
-      return res
-        .status(400)
-        .json({ error: "La quantité est requise dans le body." });
+    if (!response.ok) {
+      throw new Error("Failed to update product");
     }
-    /* fetch inventory levels for a specific inventory item */
-    const inventory = await client.get({
-      path: "inventory_levels",
-      query: {
-        inventory_item_ids: inventoryItemId,
-      },
-    });
 
-    /* update stock level */
-    const response = await client.post({
-      path: "inventory_levels/set",
-      data: {
-        inventory_item_id: inventoryItemId,
-        location_id: inventory.body.inventory_levels[0].location_id,
-        available: newQuantity,
-      },
-      type: "application/json",
-    });
-
-    res.json({
-      message: "✅ Stock mis à jour avec succès",
-      response: response.body,
-    });
+    const data = await response.json();
+    res.json(data);
   } catch (error) {
-    console.error("Erreur mise à jour du stock :", error);
-    res.status(500).json({ error: "Erreur lors de la mise à jour du stock." });
+    res.status(500).json({ error: "Failed to update product" });
+  }
+});
+
+/* Delete product */
+router.delete("/products/:id", async function (req, res, next) {
+  const { id } = req.params;
+
+  try {
+    const response = await fetch(`https://dummyjson.com/products/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete product");
+    }
+
+    const data = await response.json();
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete product" });
   }
 });
 
