@@ -7,8 +7,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
-}
-
-a {
-  color: #00b7ff;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
